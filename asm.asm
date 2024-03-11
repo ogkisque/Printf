@@ -199,6 +199,8 @@ parse_num:
     mov r11, 65
     mov r12b, '0'
 
+    cmp r10, 10
+    jne .loop
     cmp rax, 0
     jge .loop
     neg rax                         ; rax = |rax|
@@ -223,8 +225,11 @@ parse_num:
         cmp rax, 0
         jne .loop
 
+    cmp r10, 10
+    jne .print
     mov byte [NumBuf + r11], r12b   ; '-' or '0'
 
+    .print:
     mov rax, 0x01     
     mov rdi, 1        
 
