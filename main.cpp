@@ -1,17 +1,16 @@
-//#include <stdio.h>
 extern "C" void myprintf (const char* str, ...);
 
 int main ()
 {
-    const char* str1 = "format%%\n%c%c\n%c%s%%%c%c\n%s\n";
-    const char str2 = 'a';
-    const char str3 = 'b';
-    const char str4 = 'c';
-    const char* str5 = "\nSTRING\n";
-    const char str6 = 'e';
-    const char str7 = 'f';
-    const char* str8 = "hahahoho";
+    const char* format = "%o\n%b\n%c\n%s\n%%\n%x\n%c\n%d\n";
+    long long   par1 = 07654321;
+    long long   par2 = -5;
+    const char  par3 = 'c';
+    const char* par4 = "STRING";
+    long long   par5 = 0xA1B2C3DEF;
+    const char  par6 = 'f';
+    long long   par7 = -123456789;
 
-    myprintf (str1, str2, str3, str4, str5, str6, str7, str8);
+    myprintf (format, par1, par2, par3, par4, par5, par6, par7);
     return 0;
 }
