@@ -106,19 +106,23 @@ parse_percent:
         jmp exit
 
     check_dec:
-        call parse_dec
+        mov r10, 10
+        call parse_num
         jmp exit
 
     check_hex:
-        call parse_hex
+        mov r10, 16
+        call parse_num
         jmp exit
         
     check_oct:
-        call parse_oct
+        mov r10, 8
+        call parse_num
         jmp exit
         
     check_bin:
-        call parse_bin
+        mov r10, 2
+        call parse_num
         jmp exit
         
     exit:
@@ -167,115 +171,6 @@ parse_string:
 
     ret
 ;--------------------------------------------------------------------------------
-; Parse %d
-; Entry:    rbx - address of current argument (number)
-; Destr:    rdx, rax, r10, r11, rdi, rsi
-
-parse_dec:
-
-    xor rdx, rdx
-    mov rax, [rbx]                  ; rax = number
-    mov r10, 10
-    mov r11, 21
-    mov r12b, '0'
-
-    cmp rax, 0
-    jge .loop
-    neg rax                         ; rax = |rax|
-    mov r12b, '-'
-
-    .loop:
-        xor rdx, rdx
-        div r10                     ; rax /= 10 ; rdx = rax % 10
-
-        add rdx, '0'                ; convert to char
-        mov byte [DecNum + r11], dl
-        dec r11
-
-        cmp rax, 0
-        jne .loop
-
-    mov byte [DecNum + r11], r12b   ; '-' or '0'
-
-    mov rax, 0x01     
-    mov rdi, 1        
-
-    mov rdx, 21
-    sub rdx, r11
-
-    mov rsi, DecNum
-    add rsi, r11
-    inc rsi
-
-    cmp r12b, '0'
-    je .next
-    inc rdx
-    dec rsi
-
-    .next:
-    syscall                         ; print (DecNum + r11 + 1)
-
-    mov r10, [Str]
-    inc r10
-    mov [Str], r10                  ; [Str]++
-
-    ret
-;--------------------------------------------------------------------------------
-; Parse %x
-; Entry:    rbx - address of current argument (number)
-; Destr:    rdx, rax, r10, r11, rdi, rsi
-
-parse_hex:
-
-    xor rdx, rdx
-    mov rax, [rbx]                  ; rax = number
-    mov r10, 16
-    mov r11, 17
-    mov r12b, '0'
-
-    cmp rax, 0
-    jge .loop
-    neg rax                         ; rax = |rax|
-    mov r12b, '-'
-
-    .loop:
-        xor rdx, rdx
-        div r10                     ; rax /= 10 ; rdx = rax % 10
-
-        call convert_hex
-
-        mov byte [HexNum + r11], dl
-        dec r11
-
-        cmp rax, 0
-        jne .loop
-
-    mov byte [HexNum + r11], r12b   ; '-' or '0'
-
-    mov rax, 0x01     
-    mov rdi, 1        
-
-    mov rdx, 17
-    sub rdx, r11
-
-    mov rsi, HexNum
-    add rsi, r11
-    inc rsi
-
-    cmp r12b, '0'
-    je .next
-    inc rdx
-    dec rsi
-
-    .next:
-    syscall                         ; print (HexNum + r11 + 1)
-
-    mov r10, [Str]
-    inc r10
-    mov [Str], r10                  ; [Str]++
-
-    ret
-;--------------------------------------------------------------------------------
 ; Convert digit to ASCII
 ; Entry:    rdx (dl) - digit
 ; Destr:    rdx
@@ -293,69 +188,14 @@ convert_hex:
     .exit:
     ret
 ;--------------------------------------------------------------------------------
-; Parse %o
-; Entry:    rbx - address of current argument (number)
+; Parse %d %x %o %b
+; Entry:    rbx - address of current argument (number), r10 - system
 ; Destr:    rdx, rax, r10, r11, rdi, rsi
 
-parse_oct:
+parse_num:
 
     xor rdx, rdx
     mov rax, [rbx]                  ; rax = number
-    mov r10, 8
-    mov r11, 33
-    mov r12b, '0'
-
-    cmp rax, 0
-    jge .loop
-    neg rax                         ; rax = |rax|
-    mov r12b, '-'
-
-    .loop:
-        xor rdx, rdx
-        div r10                     ; rax /= 10 ; rdx = rax % 10
-
-        add rdx, '0'                ; convert to char
-        mov byte [OctNum + r11], dl
-        dec r11
-
-        cmp rax, 0
-        jne .loop
-
-    mov byte [OctNum + r11], r12b   ; '-' or '0'
-
-    mov rax, 0x01     
-    mov rdi, 1        
-
-    mov rdx, 33
-    sub rdx, r11
-
-    mov rsi, OctNum
-    add rsi, r11
-    inc rsi
-
-    cmp r12b, '0'
-    je .next
-    inc rdx
-    dec rsi
-
-    .next:
-    syscall                         ; print (OctNum + r11 + 1)
-
-    mov r10, [Str]
-    inc r10
-    mov [Str], r10                  ; [Str]++
-
-    ret
-;--------------------------------------------------------------------------------
-; Parse %b
-; Entry:    rbx - address of current argument (number)
-; Destr:    rdx, rax, r10, r11, rdi, rsi
-
-parse_bin:
-
-    xor rdx, rdx
-    mov rax, [rbx]                  ; rax = number
-    mov r10, 2
     mov r11, 65
     mov r12b, '0'
 
@@ -368,14 +208,22 @@ parse_bin:
         xor rdx, rdx
         div r10                     ; rax /= 10 ; rdx = rax % 10
 
+        cmp r10, 16
+        je .hex
         add rdx, '0'                ; convert to char
-        mov byte [BinNum + r11], dl
+        jmp .next_step
+
+        .hex:
+        call convert_hex
+
+        .next_step:
+        mov byte [NumBuf + r11], dl
         dec r11
 
         cmp rax, 0
         jne .loop
 
-    mov byte [BinNum + r11], r12b   ; '-' or '0'
+    mov byte [NumBuf + r11], r12b   ; '-' or '0'
 
     mov rax, 0x01     
     mov rdi, 1        
@@ -383,7 +231,7 @@ parse_bin:
     mov rdx, 65
     sub rdx, r11
 
-    mov rsi, BinNum
+    mov rsi, NumBuf
     add rsi, r11
     inc rsi
 
@@ -393,7 +241,7 @@ parse_bin:
     dec rsi
 
     .next:
-    syscall                         ; print (BinNum + r11 + 1)
+    syscall                         ; print (NumBuf)
 
     mov r10, [Str]
     inc r10
@@ -473,7 +321,4 @@ SwitchChar:     dq check_bin               ; 'b'
                 dq exit                    ; 'v'
                 dq exit                    ; 'w'
                 dq check_hex               ; 'x'
-BinNum:         db 65 dup 48
-OctNum:         db 33 dup 48
-DecNum:         db 21 dup 48
-HexNum:         db 17 dup 48
+NumBuf:         db 65 dup 48               ; '0'
